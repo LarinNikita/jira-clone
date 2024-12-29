@@ -5,9 +5,18 @@ import { FaGithub } from 'react-icons/fa';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import { registerSchema } from '../schemas';
+
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { DottedSeparator } from '@/components/dotted-separator';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormMessage,
+} from '@/components/ui/form';
 import {
     Card,
     CardContent,
@@ -16,26 +25,13 @@ import {
     CardDescription,
     CardFooter,
 } from '@/components/ui/card';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormMessage,
-} from '@/components/ui/form';
-
-const formSchema = z.object({
-    name: z.string().trim().min(3, 'Name must be at least 3 characters long'),
-    email: z.string().email(),
-    password: z
-        .string()
-        .min(8, 'Password must be at least 8 characters long')
-        .max(256),
-});
+import { useRegister } from '../api/use-register';
 
 export const SignUpCard = () => {
-    const form = useForm<z.infer<typeof formSchema>>({
-        resolver: zodResolver(formSchema),
+    const { mutate } = useRegister();
+
+    const form = useForm<z.infer<typeof registerSchema>>({
+        resolver: zodResolver(registerSchema),
         defaultValues: {
             name: '',
             email: '',
@@ -43,8 +39,8 @@ export const SignUpCard = () => {
         },
     });
 
-    const onSubmit = (values: z.infer<typeof formSchema>) => {
-        console.log({ values });
+    const onSubmit = (values: z.infer<typeof registerSchema>) => {
+        mutate({ json: values });
     };
 
     return (
