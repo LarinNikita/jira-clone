@@ -45,7 +45,7 @@ export const DottedSeparator = ({
             />
             {text && (
                 <>
-                    <div className="px-1 text-center text-[#3f3f41]">
+                    <div className="px-1 text-center text-lg text-[#3f3f41]">
                         {text}
                     </div>
 
