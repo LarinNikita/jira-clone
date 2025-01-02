@@ -9,12 +9,13 @@ import {
     WORKSPACES_ID,
 } from '@/config';
 
+import { getMember } from '@/features/members/utils';
 import { MemberRole } from '@/features/members/types';
 
 import { generateInviteCode } from '@/lib/utils';
 import { sessionMiddleware } from '@/lib/session-middleware';
 
-import { createWorkspaceSchema } from '../schemas';
+import { createWorkspaceSchema, updateWorkspaceSchema } from '../schemas';
 
 const app = new Hono()
     .get('/', sessionMiddleware, async ctx => {
@@ -51,8 +52,8 @@ const app = new Hono()
     })
     .post(
         '/',
-        zValidator('form', createWorkspaceSchema),
         sessionMiddleware,
+        zValidator('form', createWorkspaceSchema),
         async ctx => {
             const databases = ctx.get('databases');
             const storage = ctx.get('storage');
@@ -99,6 +100,62 @@ const app = new Hono()
                     userId: user.$id,
                     workspaceId: workspace.$id,
                     role: MemberRole.ADMIN,
+                },
+            );
+
+            return ctx.json({ data: workspace });
+        },
+    )
+    .patch(
+        '/:workspaceId',
+        sessionMiddleware,
+        zValidator('form', updateWorkspaceSchema),
+        async ctx => {
+            const databases = ctx.get('databases');
+            const storage = ctx.get('storage');
+            const user = ctx.get('user');
+
+            const { workspaceId } = ctx.req.param();
+            const { name, image } = ctx.req.valid('form');
+
+            const member = await getMember({
+                databases,
+                workspaceId,
+                userId: user.$id,
+            });
+
+            if (!member || member.role !== MemberRole.ADMIN) {
+                return ctx.json({ error: 'Unauthorized' }, 403);
+            }
+
+            let uploadedImageUrl: string | undefined;
+
+            if (image instanceof File) {
+                const file = await storage.createFile(
+                    IMAGES_BUCKET_ID,
+                    ID.unique(),
+                    image,
+                );
+
+                const arrayBuffer = await storage.getFilePreview(
+                    IMAGES_BUCKET_ID,
+                    file.$id,
+                );
+
+                uploadedImageUrl = `data:image/pgn;base64,${Buffer.from(
+                    arrayBuffer,
+                ).toString('base64')}`;
+            } else {
+                uploadedImageUrl = image; // Assuming it's a valid URL
+            }
+
+            const workspace = await databases.updateDocument(
+                DATABASE_ID,
+                WORKSPACES_ID,
+                workspaceId,
+                {
+                    name,
+                    imageUrl: uploadedImageUrl,
                 },
             );
 
