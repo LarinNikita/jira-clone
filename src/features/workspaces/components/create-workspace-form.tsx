@@ -11,6 +11,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 
 import { useCreateWorkspace } from '../api/use-create-workspace';
 
+import { cn } from '@/lib/utils';
+
 import { createWorkspaceSchema } from '../schemas';
 
 import { Input } from '@/components/ui/input';
@@ -170,6 +172,7 @@ export const CreateWorkspaceForm = ({ onCancel }: CreateWorkspaceFormProps) => {
                                 size="lg"
                                 variant="secondary"
                                 onClick={onCancel}
+                                className={cn(!onCancel && 'invisible')}
                             >
                                 Cancel
                             </Button>

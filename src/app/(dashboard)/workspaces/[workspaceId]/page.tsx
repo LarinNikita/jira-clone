@@ -1,20 +1,17 @@
-'use client';
+import { redirect } from 'next/navigation';
 
-interface Props {
-    params: {
-        id: string;
-    };
-}
+import { getCurrent } from '@/features/auth/actions';
 
-const Page = ({ params }: Props) => {
-    const { id } = params;
+const WorkspaceIdPage = async () => {
+    const user = await getCurrent();
+
+    if (!user) redirect('/sign-in');
 
     return (
         <>
-            <h1>Page {id}</h1>
-            <p>Page content</p>
+            <h1>Workspace Page</h1>
         </>
     );
 };
 
-export default Page;
+export default WorkspaceIdPage;
