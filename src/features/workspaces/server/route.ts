@@ -183,6 +183,33 @@ const app = new Hono()
         await databases.deleteDocument(DATABASE_ID, WORKSPACES_ID, workspaceId);
 
         return ctx.json({ data: { $id: workspaceId } });
+    })
+    .post('/:workspaceId/reset-invite-code', sessionMiddleware, async ctx => {
+        const databases = ctx.get('databases');
+        const user = ctx.get('user');
+
+        const { workspaceId } = ctx.req.param();
+
+        const member = await getMember({
+            databases,
+            workspaceId,
+            userId: user.$id,
+        });
+
+        if (!member || member.role !== MemberRole.ADMIN) {
+            return ctx.json({ error: 'Unauthorized' }, 403);
+        }
+
+        const workspace = await databases.updateDocument(
+            DATABASE_ID,
+            WORKSPACES_ID,
+            workspaceId,
+            {
+                inviteCode: generateInviteCode(10),
+            },
+        );
+
+        return ctx.json({ data: workspace });
     });
 
 export default app;
