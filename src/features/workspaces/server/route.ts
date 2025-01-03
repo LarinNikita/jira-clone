@@ -16,6 +16,8 @@ import { generateInviteCode } from '@/lib/utils';
 import { sessionMiddleware } from '@/lib/session-middleware';
 
 import { createWorkspaceSchema, updateWorkspaceSchema } from '../schemas';
+import { z } from 'zod';
+import { Workspace } from '../types';
 
 const app = new Hono()
     .get('/', sessionMiddleware, async ctx => {
@@ -210,6 +212,51 @@ const app = new Hono()
         );
 
         return ctx.json({ data: workspace });
-    });
+    })
+    .post(
+        '/:workspaceId/join',
+        sessionMiddleware,
+        zValidator('json', z.object({ code: z.string() })),
+        async ctx => {
+            const { workspaceId } = ctx.req.param();
+            const { code } = ctx.req.valid('json');
+
+            const databases = ctx.get('databases');
+            const user = ctx.get('user');
+
+            const member = await getMember({
+                databases,
+                workspaceId,
+                userId: user.$id,
+            });
+
+            if (member) {
+                return ctx.json({ error: 'Already a member' }, 400);
+            }
+
+            const workspace = await databases.getDocument<Workspace>(
+                DATABASE_ID,
+                WORKSPACES_ID,
+                workspaceId,
+            );
+
+            if (workspace.inviteCode !== code) {
+                return ctx.json({ error: 'Invalid invite code' }, 400);
+            }
+
+            await databases.createDocument(
+                DATABASE_ID,
+                MEMBERS_ID,
+                ID.unique(),
+                {
+                    workspaceId,
+                    userId: user.$id,
+                    role: MemberRole.MEMBER,
+                },
+            );
+
+            return ctx.json({ data: workspace });
+        },
+    );
 
 export default app;
