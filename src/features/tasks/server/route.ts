@@ -143,6 +143,56 @@ const app = new Hono()
             });
         },
     )
+    .get('/:taskId', sessionMiddleware, async ctx => {
+        const currentUser = ctx.get('user');
+        const databases = ctx.get('databases');
+        const { users } = await createAdminClient();
+        const { taskId } = ctx.req.param();
+
+        const task = await databases.getDocument<Task>(
+            DATABASE_ID,
+            TASKS_ID,
+            taskId,
+        );
+
+        const currentMember = await getMember({
+            databases,
+            workspaceId: task.workspaceId,
+            userId: currentUser.$id,
+        });
+
+        if (!currentMember) {
+            return ctx.json({ error: 'Unauthorized' }, 401);
+        }
+
+        const project = await databases.getDocument<Project>(
+            DATABASE_ID,
+            PROJECTS_ID,
+            task.projectId,
+        );
+
+        const member = await databases.getDocument(
+            DATABASE_ID,
+            MEMBERS_ID,
+            task.assigneeId,
+        );
+
+        const user = await users.get(member.userId);
+
+        const assignee = {
+            ...member,
+            name: user.name,
+            email: user.email,
+        };
+
+        return ctx.json({
+            data: {
+                ...task,
+                project,
+                assignee,
+            },
+        });
+    })
     .post(
         '/',
         sessionMiddleware,
@@ -205,7 +255,81 @@ const app = new Hono()
             return ctx.json({ data: task });
         },
     )
-    .patch('/', async ctx => {})
-    .delete('/', async ctx => {});
+    .patch(
+        '/:taskId',
+        sessionMiddleware,
+        zValidator('json', createTaskSchema.partial()),
+        async ctx => {
+            const user = ctx.get('user');
+            const databases = ctx.get('databases');
+            const {
+                name,
+                status,
+                projectId,
+                assigneeId,
+                dueDate,
+                description,
+            } = ctx.req.valid('json');
+
+            const { taskId } = ctx.req.param();
+
+            const existingTask = await databases.getDocument(
+                DATABASE_ID,
+                TASKS_ID,
+                taskId,
+            );
+
+            const member = await getMember({
+                databases,
+                workspaceId: existingTask.workspaceId,
+                userId: user.$id,
+            });
+
+            if (!member) {
+                return ctx.json({ error: 'Unauthorized' }, 401);
+            }
+
+            const task = await databases.updateDocument(
+                DATABASE_ID,
+                TASKS_ID,
+                taskId,
+                {
+                    name,
+                    status,
+                    projectId,
+                    assigneeId,
+                    dueDate,
+                    description,
+                },
+            );
+
+            return ctx.json({ data: task });
+        },
+    )
+    .delete('/:taskId', sessionMiddleware, async ctx => {
+        const user = ctx.get('user');
+        const databases = ctx.get('databases');
+        const { taskId } = ctx.req.param();
+
+        const task = await databases.getDocument<Task>(
+            DATABASE_ID,
+            TASKS_ID,
+            taskId,
+        );
+
+        const member = await getMember({
+            databases,
+            workspaceId: task.workspaceId,
+            userId: user.$id,
+        });
+
+        if (!member) {
+            return ctx.json({ error: 'Unauthorized' }, 401);
+        }
+
+        await databases.deleteDocument(DATABASE_ID, TASKS_ID, taskId);
+
+        return ctx.json({ data: { $id: task.$id } });
+    });
 
 export default app;
