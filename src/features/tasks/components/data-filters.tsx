@@ -8,6 +8,7 @@ import { useTaskFilters } from '../hooks/use-task-filters';
 
 import { TaskStatus } from '../types';
 
+import { DatePicker } from '@/components/date-picker';
 import {
     Select,
     SelectContent,
@@ -16,7 +17,6 @@ import {
     SelectValue,
     SelectSeparator,
 } from '@/components/ui/select';
-import { DatePicker } from '@/components/date-picker';
 
 interface DataFiltersProps {
     hideProjectFilter?: boolean;

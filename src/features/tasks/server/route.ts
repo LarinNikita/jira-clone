@@ -11,7 +11,7 @@ import { getMember } from '@/features/members/utils';
 import { createAdminClient } from '@/lib/appwrite';
 import { sessionMiddleware } from '@/lib/session-middleware';
 
-import { TaskStatus } from '../types';
+import { Task, TaskStatus } from '../types';
 import { createTaskSchema } from '../schemas';
 
 const app = new Hono()
@@ -83,7 +83,7 @@ const app = new Hono()
                 query.push(Query.search('name', search));
             }
 
-            const tasks = await databases.listDocuments(
+            const tasks = await databases.listDocuments<Task>(
                 DATABASE_ID,
                 TASKS_ID,
                 query,
