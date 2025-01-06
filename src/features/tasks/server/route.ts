@@ -330,6 +330,87 @@ const app = new Hono()
         await databases.deleteDocument(DATABASE_ID, TASKS_ID, taskId);
 
         return ctx.json({ data: { $id: task.$id } });
-    });
+    })
+    .post(
+        '/bulk-update',
+        sessionMiddleware,
+        zValidator(
+            'json',
+            z.object({
+                tasks: z.array(
+                    z.object({
+                        $id: z.string(),
+                        status: z.nativeEnum(TaskStatus),
+                        position: z
+                            .number()
+                            .int()
+                            .positive()
+                            .min(1000)
+                            .max(1_000_000),
+                    }),
+                ),
+            }),
+        ),
+        async ctx => {
+            const user = ctx.get('user');
+            const databases = ctx.get('databases');
+            const { tasks } = await ctx.req.valid('json');
+
+            const tasksToUpdate = await databases.listDocuments<Task>(
+                DATABASE_ID,
+                TASKS_ID,
+                [
+                    Query.contains(
+                        '$id',
+                        tasks.map(task => task.$id),
+                    ),
+                ],
+            );
+
+            const workspaceIds = new Set(
+                tasksToUpdate.documents.map(task => task.workspaceId),
+            );
+
+            if (workspaceIds.size !== 1) {
+                return ctx.json({
+                    error: 'All tasks must be in the same workspace',
+                });
+            }
+
+            const workspaceId = workspaceIds.values().next().value;
+
+            if (!workspaceId) {
+                return ctx.json({ error: 'Workspace not found' }, 404);
+            }
+
+            const member = await getMember({
+                databases,
+                workspaceId,
+                userId: user.$id,
+            });
+
+            if (!member) {
+                return ctx.json({ error: 'Unauthorized' }, 401);
+            }
+
+            const updatedTasks = await Promise.all(
+                tasks.map(async task => {
+                    const { $id, status, position } = task;
+
+                    return databases.updateDocument<Task>(
+                        DATABASE_ID,
+                        TASKS_ID,
+                        $id,
+                        {
+                            status,
+                            position,
+                        },
+                    );
+                }),
+            );
+
+            return ctx.json({ data: updatedTasks });
+        },
+    );
 
 export default app;
