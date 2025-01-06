@@ -24,7 +24,13 @@ import { Button } from '@/components/ui/button';
 import { DottedSeparator } from '@/components/dotted-separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-export const TaskViewSwitcher = () => {
+interface TaskViewSwitcherProps {
+    hideProjectFilter?: boolean;
+}
+
+export const TaskViewSwitcher = ({
+    hideProjectFilter,
+}: TaskViewSwitcherProps) => {
     const [view, setView] = useQueryState('task-view', {
         defaultValue: 'table',
     });
@@ -90,7 +96,7 @@ export const TaskViewSwitcher = () => {
                     </Button>
                 </div>
                 <DottedSeparator className="my-4" />
-                <DataFilters />
+                <DataFilters hideProjectFilter={hideProjectFilter} />
                 <DottedSeparator className="my-4" />
                 {isLoadingTasks ? (
                     <div className="flex h-[200px] w-full flex-col items-center justify-center rounded-lg border">
