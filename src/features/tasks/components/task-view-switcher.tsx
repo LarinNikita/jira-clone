@@ -8,6 +8,7 @@ import { Loader, Plus } from 'lucide-react';
 import { useGetTasks } from '../api/use-get-tasks';
 import { useBulkUpdateTasks } from '../api/use-bulk-update-tasks';
 
+import { useProjectId } from '@/features/projects/hooks/use-project-id';
 import { useWorkspaceId } from '@/features/workspaces/hooks/use-workspace-id';
 
 import { useTaskFilters } from '../hooks/use-task-filters';
@@ -38,6 +39,7 @@ export const TaskViewSwitcher = ({
     const [{ status, assigneeId, projectId, dueDate }] = useTaskFilters();
 
     const workspaceId = useWorkspaceId();
+    const paramProjectId = useProjectId();
 
     const { open } = useCreateTaskModal();
 
@@ -47,7 +49,7 @@ export const TaskViewSwitcher = ({
         workspaceId,
         status,
         assigneeId,
-        projectId,
+        projectId: projectId ?? paramProjectId,
         dueDate,
     });
 
