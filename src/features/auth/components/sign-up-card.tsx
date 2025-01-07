@@ -7,6 +7,10 @@ import { FaGithub } from 'react-icons/fa';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import { useRegister } from '../api/use-register';
+
+import { signUpWithGithub, signUpWithGoogle } from '@/lib/oauth';
+
 import { registerSchema } from '../schemas';
 
 import { Input } from '@/components/ui/input';
@@ -27,7 +31,6 @@ import {
     CardDescription,
     CardFooter,
 } from '@/components/ui/card';
-import { useRegister } from '../api/use-register';
 
 export const SignUpCard = () => {
     const { mutate, isPending } = useRegister();
@@ -141,6 +144,7 @@ export const SignUpCard = () => {
             </div>
             <CardContent className="flex flex-col gap-y-4 p-7">
                 <Button
+                    onClick={() => signUpWithGoogle()}
                     disabled={isPending}
                     variant="secondary"
                     size="lg"
@@ -150,6 +154,7 @@ export const SignUpCard = () => {
                     Login with Google
                 </Button>
                 <Button
+                    onClick={() => signUpWithGithub()}
                     disabled={isPending}
                     variant="secondary"
                     size="lg"
