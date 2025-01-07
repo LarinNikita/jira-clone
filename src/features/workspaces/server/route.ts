@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { Hono } from 'hono';
 import { ID, Query } from 'node-appwrite';
 import { zValidator } from '@hono/zod-validator';
@@ -15,9 +16,8 @@ import { MemberRole } from '@/features/members/types';
 import { generateInviteCode } from '@/lib/utils';
 import { sessionMiddleware } from '@/lib/session-middleware';
 
-import { createWorkspaceSchema, updateWorkspaceSchema } from '../schemas';
-import { z } from 'zod';
 import { Workspace } from '../types';
+import { createWorkspaceSchema, updateWorkspaceSchema } from '../schemas';
 
 const app = new Hono()
     .get('/', sessionMiddleware, async ctx => {
@@ -51,6 +51,49 @@ const app = new Hono()
         );
 
         return ctx.json({ data: workspace });
+    })
+    .get('/:workspaceId', sessionMiddleware, async ctx => {
+        const user = ctx.get('user');
+        const databases = ctx.get('databases');
+
+        const { workspaceId } = ctx.req.param();
+
+        const member = await getMember({
+            databases,
+            workspaceId,
+            userId: user.$id,
+        });
+
+        if (!member) {
+            return ctx.json({ error: 'Unauthorized' }, 401);
+        }
+
+        const workspace = await databases.getDocument<Workspace>(
+            DATABASE_ID,
+            WORKSPACES_ID,
+            workspaceId,
+        );
+
+        return ctx.json({ data: workspace });
+    })
+    .get('/:workspaceId/info', sessionMiddleware, async ctx => {
+        const databases = ctx.get('databases');
+
+        const { workspaceId } = ctx.req.param();
+
+        const workspace = await databases.getDocument<Workspace>(
+            DATABASE_ID,
+            WORKSPACES_ID,
+            workspaceId,
+        );
+
+        return ctx.json({
+            data: {
+                $id: workspace.$id,
+                name: workspace.name,
+                imageUrl: workspace.imageUrl,
+            },
+        });
     })
     .post(
         '/',
@@ -127,7 +170,7 @@ const app = new Hono()
             });
 
             if (!member || member.role !== MemberRole.ADMIN) {
-                return ctx.json({ error: 'Unauthorized' }, 403);
+                return ctx.json({ error: 'Unauthorized' }, 401);
             }
 
             let uploadedImageUrl: string | undefined;

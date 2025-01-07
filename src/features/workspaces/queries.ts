@@ -4,11 +4,7 @@ import { Query } from 'node-appwrite';
 
 import { DATABASE_ID, MEMBERS_ID, WORKSPACES_ID } from '@/config';
 
-import { getMember } from '@/features/members/utils';
-
 import { createSessionClient } from '@/lib/appwrite';
-
-import { Workspace } from './types';
 
 export const getWorkspaces = async () => {
     const { account, databases } = await createSessionClient();
@@ -34,51 +30,4 @@ export const getWorkspaces = async () => {
     );
 
     return workspaces;
-};
-
-interface getWorkspaceProps {
-    workspaceId: string;
-}
-
-export const getWorkspace = async ({ workspaceId }: getWorkspaceProps) => {
-    const { account, databases } = await createSessionClient();
-    const user = await account.get();
-
-    const member = await getMember({
-        databases,
-        userId: user.$id,
-        workspaceId,
-    });
-
-    if (!member) {
-        throw new Error('You are not a member of this workspace');
-    }
-
-    const workspace = await databases.getDocument<Workspace>(
-        DATABASE_ID,
-        WORKSPACES_ID,
-        workspaceId,
-    );
-
-    return workspace;
-};
-
-interface getWorkspaceInfoProps {
-    workspaceId: string;
-}
-
-export const getWorkspaceInfo = async ({
-    workspaceId,
-}: getWorkspaceInfoProps) => {
-    const { databases } = await createSessionClient();
-
-    const workspace = await databases.getDocument<Workspace>(
-        DATABASE_ID,
-        WORKSPACES_ID,
-        workspaceId,
-    );
-
-    return {
-        name: workspace.name,
-    };
 };
