@@ -7,6 +7,7 @@ import {
     DATABASE_ID,
     IMAGES_BUCKET_ID,
     MEMBERS_ID,
+    PROJECTS_ID,
     TASKS_ID,
     WORKSPACES_ID,
 } from '@/config';
@@ -419,10 +420,38 @@ const app = new Hono()
         });
 
         if (!member || member.role !== MemberRole.ADMIN) {
-            return ctx.json({ error: 'Unauthorized' }, 403);
+            return ctx.json({ error: 'Unauthorized' }, 401);
         }
 
-        // TODO Delete members, projects and tasks
+        const tasks = await databases.listDocuments(DATABASE_ID, TASKS_ID, [
+            Query.equal('workspaceId', workspaceId),
+        ]);
+
+        for (const task of tasks.documents) {
+            await databases.deleteDocument(DATABASE_ID, TASKS_ID, task.$id);
+        }
+
+        const projects = await databases.listDocuments(
+            DATABASE_ID,
+            PROJECTS_ID,
+            [Query.equal('workspaceId', workspaceId)],
+        );
+
+        for (const project of projects.documents) {
+            await databases.deleteDocument(
+                DATABASE_ID,
+                PROJECTS_ID,
+                project.$id,
+            );
+        }
+
+        const members = await databases.listDocuments(DATABASE_ID, MEMBERS_ID, [
+            Query.equal('workspaceId', workspaceId),
+        ]);
+
+        for (const member of members.documents) {
+            await databases.deleteDocument(DATABASE_ID, MEMBERS_ID, member.$id);
+        }
 
         await databases.deleteDocument(DATABASE_ID, WORKSPACES_ID, workspaceId);
 
